@@ -576,12 +576,9 @@ class BouncingBallSimulation:
         self._initialize_state()
         self._setup_fonts()
         
-        # Add an initial ball on the ground so player knows where to click
-        initial_ball = self.create_ball_for_shooting()
-        if initial_ball:
-            self.balls.append(initial_ball)
-            print("Strategic Bird Hunter initialized!")
-            print("Starting with 3 shots - click and drag the ball to shoot!")
+        # Don't add initial ball - let player click to create balls
+        print("Strategic Bird Hunter initialized!")
+        print("Click anywhere to create a ball, then drag to shoot!")
     
     def _initialize_clouds(self) -> None:
         """Initialize moving cloud obstacles."""
@@ -709,24 +706,29 @@ class BouncingBallSimulation:
             self.big_font = pygame.font.get_default_font()
             self.score_font = pygame.font.get_default_font()
         
-    def create_ball_for_shooting(self) -> Optional[Ball]:
+    def create_ball_for_shooting(self, x: Optional[float] = None, y: Optional[float] = None) -> Optional[Ball]:
         """Create a ball for slingshot shooting if ammo available.
-        
+
+        Args:
+            x: Optional X position for the ball (defaults to center)
+            y: Optional Y position for the ball (defaults to mid-screen)
+
         Returns:
             Ball if ammo available, None otherwise
         """
         if self.game_state.ammo_count <= 0:
             return None
-            
-        # Create ball at slingshot position (bottom center)
+
+        # Create ball at specified position or default
         radius = BallConstants.DEFAULT_RADIUS
         if self.game_state.bigball_active:
             radius *= 2
-            
-        x = self.width * 0.5
-        # Position ball at a comfortable shooting height (mid-lower screen)
-        # This makes it easier to shoot in any direction including upward
-        y = self.height * 0.65  # About 2/3 down the screen for easy shooting
+
+        # Use provided position or defaults
+        if x is None:
+            x = self.width * 0.5
+        if y is None:
+            y = self.height * 0.65  # About 2/3 down the screen
         
         # Assign random colorful ball color
         ball_colors = [Colors.RED, Colors.BLUE, Colors.GREEN, Colors.ORANGE, Colors.PURPLE, Colors.CYAN]
@@ -777,11 +779,7 @@ class BouncingBallSimulation:
         self.clouds.clear()
         self._initialize_clouds()
         
-        # Add an initial ball for the player to start with
-        initial_ball = self.create_ball_for_shooting()
-        if initial_ball:
-            self.balls.append(initial_ball)
-        
+        # Don't add initial ball - let player click to create balls
         print(f"Game reset! Starting new game with 3 shots!")
     
     def update_physics(self, dt: float) -> None:
@@ -2072,9 +2070,9 @@ class BouncingBallSimulation:
         if clicked_ball:
             self._start_slingshot(clicked_ball, mouse_x, mouse_y)
         else:
-            # Try to create a new ball for shooting if ammo available
+            # Try to create a new ball at mouse position if ammo available
             if self.game_state.ammo_count > 0 and not self.dragging_ball:
-                new_ball = self.create_ball_for_shooting()
+                new_ball = self.create_ball_for_shooting(mouse_x, mouse_y)
                 if new_ball:
                     self.balls.append(new_ball)
                     self._start_slingshot(new_ball, mouse_x, mouse_y)

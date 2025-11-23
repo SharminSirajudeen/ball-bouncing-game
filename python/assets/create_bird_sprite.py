@@ -32,8 +32,11 @@ pygame.draw.ellipse(surface, DARK_BROWN, body_rect, 2)
 pygame.draw.circle(surface, BROWN, (75, 35), 18)
 pygame.draw.circle(surface, DARK_BROWN, (75, 35), 18, 2)
 
-# Beak (triangle) - Wide end attached to head, point facing away
-beak_points = [(93, 32), (93, 38), (105, 35)]  # Triangle with wide base at head
+# Beak (triangle) - Bird faces right, so beak points right
+# Head is at x=75, beak starts at x=93 (edge of head)
+# Original beak had point at x=105, but triangle was backwards
+# Correct: wide base at head (x=93), point away from head (x=105)
+beak_points = [(93, 32), (93, 38), (105, 35)]  # Triangle pointing right
 pygame.draw.polygon(surface, ORANGE, beak_points)
 
 # Eye
