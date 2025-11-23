@@ -7,6 +7,9 @@ A multi-platform game project featuring a combined Ball Bouncing and Bird Shooti
 ```
 ball-bouncing-game/
 ├── python/           # Python implementation using Pygame
+│   ├── assets/       # Game assets
+│   │   ├── bird_sprite.png           # Bird sprite (right-facing)
+│   │   └── bird_sprite_left.png      # Bird sprite (left-facing)
 │   ├── bouncing_ball.py              # Main game (combined ball bouncing + bird shooting)
 │   ├── run_bird_shooter.py           # Game launcher script
 │   ├── bird_hunter_highscore.txt     # High score storage
@@ -27,7 +30,11 @@ ball-bouncing-game/
 The Python version is a combined game built using Pygame that includes:
 - **Ball Bouncing mechanics** with physics simulation
 - **Bird Shooting game** with slingshot mechanics
-- Multiple bird rendering modes (Emoji, Sprites, Geometric shapes)
+- Multiple bird rendering modes:
+  - Emoji mode (🦅)
+  - Sprite mode (using custom brown bird sprites)
+  - Geometric shapes mode
+- Custom bird sprites with directional variants (left/right facing)
 - High score tracking
 - Debug mode for testing
 - Test suites for validation
