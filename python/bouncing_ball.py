@@ -2178,7 +2178,7 @@ class BouncingBallSimulation:
         dy = start_y - mouse_y
         
         # Debug print
-        print(f"Launch: start=({start_x:.0f},{start_y:.0f}) current=({current_x:.0f},{current_y:.0f}) velocity=({dx:.0f},{dy:.0f})")
+        print(f"Launch: start=({start_x:.0f},{start_y:.0f}) current=({mouse_x:.0f},{mouse_y:.0f}) velocity=({dx:.0f},{dy:.0f})")
         
         drag_distance = math.sqrt(dx**2 + dy**2)
         

@@ -32,8 +32,8 @@ pygame.draw.ellipse(surface, DARK_BROWN, body_rect, 2)
 pygame.draw.circle(surface, BROWN, (75, 35), 18)
 pygame.draw.circle(surface, DARK_BROWN, (75, 35), 18, 2)
 
-# Beak (triangle)
-beak_points = [(90, 35), (105, 32), (105, 38)]
+# Beak (triangle) - Wide end attached to head, point facing away
+beak_points = [(93, 32), (93, 38), (105, 35)]  # Triangle with wide base at head
 pygame.draw.polygon(surface, ORANGE, beak_points)
 
 # Eye
