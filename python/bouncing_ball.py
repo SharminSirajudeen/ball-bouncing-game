@@ -724,8 +724,9 @@ class BouncingBallSimulation:
             radius *= 2
             
         x = self.width * 0.5
-        # Position ball on ground - new mechanics allow upward shots from ground
-        y = self.height - radius - 50  # Just above ground with some margin
+        # Position ball at a comfortable shooting height (mid-lower screen)
+        # This makes it easier to shoot in any direction including upward
+        y = self.height * 0.65  # About 2/3 down the screen for easy shooting
         
         # Assign random colorful ball color
         ball_colors = [Colors.RED, Colors.BLUE, Colors.GREEN, Colors.ORANGE, Colors.PURPLE, Colors.CYAN]
