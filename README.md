@@ -38,9 +38,11 @@ The Python version is a combined game built using Pygame that includes:
 - High score tracking
 - Debug mode for testing
 - Test suites for validation
+- **Web deployment support** via Pygbag (play in browser!)
 
 ### Running the Python Game
 
+**Desktop Version:**
 ```bash
 cd python
 # Run directly
@@ -50,6 +52,11 @@ python bouncing_ball.py
 python run_bird_shooter.py
 ```
 
+**Web Version (Play in Browser):**
+
+The game can be played directly in your web browser! Visit the deployed version at:
+🎮 **[Play Bird Hunter Online](https://[YOUR-USERNAME].github.io/ball-bouncing-game/)**
+
 ### Game Controls
 - **Drag any ball** - Aim and shoot
 - **B** - Switch between bird modes
@@ -57,6 +64,59 @@ python run_bird_shooter.py
 - **Space** - Pause
 - **Shift+Click** - Add more balls
 - **ESC/Q** - Quit
+
+## 🌐 Web Deployment
+
+This game can be deployed to the web using **Pygbag**, which converts Pygame games to run in browsers via WebAssembly.
+
+### Automatic Deployment (GitHub Pages)
+
+The repository is configured for automatic deployment:
+
+1. **Push to main/master branch** - The game will automatically build and deploy
+2. **Enable GitHub Pages**:
+   - Go to repository Settings → Pages
+   - Set Source to "GitHub Actions"
+   - The game will be available at: `https://[username].github.io/ball-bouncing-game/`
+
+### Manual Build
+
+To build the web version locally:
+
+```bash
+cd python
+
+# Install pygbag
+pip install pygbag>=0.8.7
+
+# Build the game
+./build-web.sh
+
+# Or manually:
+python -m pygbag --build --app_name "Bird Hunter" .
+```
+
+Test locally:
+```bash
+cd build/web
+python -m http.server 8000
+# Open http://localhost:8000 in your browser
+```
+
+### Deployment Options
+
+1. **GitHub Pages** (Recommended) - Free, automatic deployment
+2. **Itch.io** - Upload the `build/web` folder
+3. **Netlify/Vercel** - Deploy as a static site
+4. **Your own web server** - Host the `build/web` directory
+
+### Web Version Features
+
+✅ Runs directly in modern browsers (Chrome, Firefox, Safari, Edge)
+✅ No installation required
+✅ Full game functionality
+✅ Touch controls support (mobile-friendly)
+✅ Automatic updates when you push changes
 
 ## Android Version - Aishooty (Bird Shooting Game)
 
