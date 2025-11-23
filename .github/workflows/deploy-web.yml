@@ -42,8 +42,6 @@ jobs:
           python -m pygbag \
             --build \
             --app_name "Bird Hunter" \
-            --icon assets/bird_sprite.png \
-            --template noctua \
             .
 
       - name: Setup Pages
