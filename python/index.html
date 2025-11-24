@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Ricochet Hunter - Strategic Shooting Game</title>
+    <!-- Force cache refresh -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Ricochet Hunter v2.1 - Strategic Shooting Game</title>
     <style>
         * {
             margin: 0;
@@ -161,6 +165,15 @@
             line-height: 1.6;
         }
 
+        .version-info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8em;
+            z-index: 10000;
+        }
+
         #game-canvas {
             display: none;
             max-width: 100%;
@@ -201,8 +214,15 @@
     </div>
 
     <canvas id="game-canvas"></canvas>
+    <div class="version-info">v2.1 Safari Fix</div>
 
     <script type="module">
+        // Version check - CRITICAL for debugging cache issues
+        console.log('🎮 RICOCHET HUNTER v2.1 - Safari Fix Loaded');
+        console.log('🕐 Page load time:', new Date().toISOString());
+        console.log('📱 If you see "Ready to start" instead of "TOUCH ANYWHERE", your browser cached the OLD version!');
+        console.log('🔄 Force refresh: Safari → Long press reload button → "Request Desktop Website" → Reload again');
+
         // Loading progress tracking
         let progress = 0;
         const progressFill = document.getElementById('progress-fill');
@@ -218,12 +238,17 @@
                       || ('ontouchstart' in window)
                       || (navigator.maxTouchPoints > 0);
 
-        console.log('Device detection:', {
+        console.log('📱 Device detection:', {
             isMobile: isMobile,
             userAgent: navigator.userAgent,
             width: window.innerWidth,
-            touchSupport: 'ontouchstart' in window
+            touchSupport: 'ontouchstart' in window,
+            maxTouchPoints: navigator.maxTouchPoints
         });
+
+        if (!isMobile && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
+            console.warn('⚠️ WARNING: Touch device detected but isMobile is false! This might be a detection bug.');
+        }
 
         const tips = [
             "💡 <strong>Tip:</strong> Drag any ball to aim and shoot birds!",
@@ -346,8 +371,20 @@
 
                 // Show "Touch to start" for mobile, "Click to start" for desktop
                 const startText = isMobile ? '👆 TOUCH ANYWHERE TO START' : '🖱️ CLICK TO START';
-                console.log('Game ready! Showing:', startText);
+                console.log('✅ Game ready! isMobile:', isMobile);
+                console.log('✅ Showing text:', startText);
+                console.log('✅ This text should appear on screen NOW');
+
                 updateProgress(100, 'Ready!', startText);
+
+                // Verify the text was set
+                setTimeout(() => {
+                    const actualText = loadingStatus.textContent;
+                    console.log('✅ Actual text on screen:', actualText);
+                    if (actualText !== startText) {
+                        console.error('❌ BUG: Text mismatch! Expected:', startText, 'Got:', actualText);
+                    }
+                }, 100);
 
                 // Add ready classes for animations
                 loadingScreen.classList.add('ready');
