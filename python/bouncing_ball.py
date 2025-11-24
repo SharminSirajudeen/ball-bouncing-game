@@ -351,6 +351,21 @@ class Bird:
 
 
 @dataclass
+class Dropping:
+    """Bird dropping obstacle that can destroy balls (Wave 2+ difficulty)."""
+    x: float
+    y: float
+    vy: float = 150.0  # Falling speed
+    radius: int = 8  # Size of dropping
+    from_bird_type: BirdType = BirdType.REGULAR  # Which bird dropped it
+
+    @property
+    def is_active(self) -> bool:
+        """Check if dropping is still on screen."""
+        return self.y < 700  # Remove when off bottom of screen
+
+
+@dataclass
 class FloatingText:
     """Floating score text for visual feedback."""
     x: float
@@ -678,7 +693,11 @@ class BouncingBallSimulation:
         self.birds: List[Bird] = []
         self.last_bird_spawn: float = 0.0
         self.next_bird_spawn_delay: float = 2.0
-        
+
+        # Bird droppings (Wave 2+ difficulty)
+        self.droppings: List[Dropping] = []
+        self.last_dropping_time: float = 0.0
+
         # Cloud obstacles
         self.clouds: List[Cloud] = []
         self._initialize_clouds()  # Now draws fluffy clouds, not gray rectangles
@@ -831,7 +850,10 @@ class BouncingBallSimulation:
         self._spawn_birds_if_needed()
         self._update_birds(dt)
         self._check_bird_dodging()
-        
+
+        # Update droppings (Wave 2+ difficulty)
+        self._update_droppings(dt)
+
         # Check for collisions
         self._check_bird_strikes()
         self._check_cloud_collisions()  # Re-enabled with fluffy clouds
@@ -1522,7 +1544,10 @@ class BouncingBallSimulation:
         
         # Draw birds with different colors based on type
         self._draw_birds()
-        
+
+        # Draw bird droppings (Wave 2+ difficulty)
+        self._draw_droppings()
+
         # Draw wind particles if strong wind
         if self.game_state.wind_strength > 50:
             self._draw_wind_particles()
@@ -2509,12 +2534,69 @@ class BouncingBallSimulation:
         
         # Remove birds that have flown off screen
         self.birds = [bird for bird in self.birds if bird.is_active]
-    
+
+    def _update_droppings(self, dt: float) -> None:
+        """Update bird droppings (Wave 2+ difficulty mechanic)."""
+        current_time = time.time()
+
+        # Only spawn droppings in Wave 2+
+        if self.game_state.current_wave >= 2:
+            # Spawn droppings from random birds occasionally
+            if current_time - self.last_dropping_time > 2.0:  # Every 2 seconds
+                if self.birds and random.random() < 0.4:  # 40% chance
+                    bird = random.choice(self.birds)
+                    dropping = Dropping(
+                        x=bird.x,
+                        y=bird.y + BirdConstants.BIRD_HEIGHT // 2,
+                        from_bird_type=bird.bird_type
+                    )
+                    self.droppings.append(dropping)
+                    self.last_dropping_time = current_time
+
+        # Update dropping positions
+        for dropping in self.droppings:
+            dropping.y += dropping.vy * dt
+
+        # Check collisions with balls (HIGH RISK!)
+        for dropping in list(self.droppings):
+            for ball in list(self.balls):
+                distance = math.sqrt((ball.x - dropping.x)**2 + (ball.y - dropping.y)**2)
+                if distance < (ball.radius + dropping.radius):
+                    # Dropping hit ball - destroy the ball!
+                    if ball in self.balls:
+                        self.balls.remove(ball)
+                        self.game_state.balls_in_flight -= 1
+                        self.game_state.ammo_count = max(0, self.game_state.ammo_count - 1)
+                        self._add_floating_text(ball.x, ball.y, "💩 BALL DESTROYED -1 AMMO!", Colors.WARNING_RED, 32)
+                        self._trigger_screen_shake(8)
+                    if dropping in self.droppings:
+                        self.droppings.remove(dropping)
+                    break
+
+        # Remove off-screen droppings
+        self.droppings = [d for d in self.droppings if d.is_active]
+
     def _draw_birds(self) -> None:
         """Draw all active birds."""
         for bird in self.birds:
             self._draw_bird(bird)
-    
+
+    def _draw_droppings(self) -> None:
+        """Draw bird droppings (Wave 2+ difficulty visual)."""
+        for dropping in self.droppings:
+            # Draw as brown/white splat with 💩 appearance
+            color = (101, 67, 33) if dropping.from_bird_type != BirdType.GOLDEN else (255, 215, 0)
+            # Main dropping
+            pygame.draw.circle(self.screen, color, (int(dropping.x), int(dropping.y)), dropping.radius)
+            # Add white highlight for shiny appearance
+            pygame.draw.circle(self.screen, (255, 255, 255),
+                             (int(dropping.x - 2), int(dropping.y - 2)), dropping.radius // 2)
+            # Add danger glow for Wave 2+
+            if self.game_state.current_wave >= 2:
+                glow_color = (255, 0, 0, 50)  # Red glow
+                pygame.draw.circle(self.screen, Colors.RED,
+                                 (int(dropping.x), int(dropping.y)), dropping.radius + 3, 1)
+
     def _get_rainbow_color(self, offset: float = 0) -> Tuple[int, int, int]:
         """Generate rainbow colors based on time.
         
@@ -2725,6 +2807,7 @@ class BouncingBallSimulation:
         print("   • Combos: Chain hits for multiplier bonuses")
         print("   • Miss Penalty: 3 misses in a row = LOSE 1 ammo! ⚠️")
         print("   • Perfect Shots: Hit bird center for 2x points + bonus ammo")
+        print("   • ⚠️ WAVE 2+: Bird droppings fall and DESTROY balls (-1 ammo)! 💩")
         print("📢 CONTROLS:")
         print("   • Click & Drag: Aim and shoot")
         print("   • R: Reset game  • SPACE: Pause  • ESC/Q: Quit")

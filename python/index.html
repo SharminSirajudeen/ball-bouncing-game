@@ -250,47 +250,65 @@
             }
         }, 200);
 
-        // Watch for game ready state
+        // Simplified game ready detection for mobile
         let gameReady = false;
         let startGameCalled = false;
+        let checkCount = 0;
 
         function startGame() {
             if (startGameCalled) return;
             startGameCalled = true;
 
-            loadingScreen.classList.add('hidden');
-            gameCanvas.classList.add('ready');
+            updateProgress(100, 'Starting...', '');
 
-            // Remove loading screen after transition
             setTimeout(() => {
-                loadingScreen.remove();
-            }, 500);
+                loadingScreen.classList.add('hidden');
+                gameCanvas.classList.add('ready');
+
+                // Remove loading screen after transition
+                setTimeout(() => {
+                    loadingScreen.remove();
+                }, 500);
+            }, 200);
         }
 
         function checkGameReady() {
-            // When pygbag signals ready
-            if (window.pygbag_ready || (window.pygame && window.pygame.display)) {
+            checkCount++;
+
+            // Try multiple detection methods
+            const canvas = document.querySelector('canvas');
+            const pygbagReady = window.pygbag_ready || window.__PYGBAG__ || window.pyodide;
+            const canvasReady = canvas && canvas.width > 0 && canvas.height > 0;
+
+            if (pygbagReady || canvasReady || checkCount > 100) {
                 clearInterval(loadingInterval);
                 gameReady = true;
+                updateProgress(99, 'Almost Ready...', 'Initializing...');
 
-                const startText = isMobile ? 'Touch to start' : 'Click to start';
-                updateProgress(100, 'Ready!', startText);
-
-                // Auto-start after a brief moment (500ms) - user doesn't need to click
+                // Auto-start after brief delay
                 setTimeout(() => {
                     if (!startGameCalled) {
                         startGame();
                     }
-                }, 500);
+                }, 800);
             } else {
-                setTimeout(checkGameReady, 100);
+                // Show progress based on time elapsed
+                const estimatedProgress = Math.min(95, 20 + (checkCount * 0.5));
+                if (checkCount < 20) {
+                    updateProgress(estimatedProgress, 'Loading Python Runtime...', 'This takes longest on mobile...');
+                } else if (checkCount < 60) {
+                    updateProgress(estimatedProgress, 'Loading Game Assets...', 'Almost there...');
+                } else {
+                    updateProgress(estimatedProgress, 'Initializing Game...', 'Just a moment...');
+                }
+                setTimeout(checkGameReady, 500);  // Check every 500ms
             }
         }
 
-        // Start checking for game ready
+        // Start checking after a brief delay
         setTimeout(checkGameReady, 1000);
 
-        // Also allow manual start if user clicks before auto-start
+        // Also allow manual start if user clicks
         loadingScreen.addEventListener('click', () => {
             if (gameReady) {
                 startGame();
