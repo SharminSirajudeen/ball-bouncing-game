@@ -214,14 +214,18 @@
     </div>
 
     <canvas id="game-canvas"></canvas>
-    <div class="version-info">v2.1 Safari Fix</div>
+    <div class="version-info">v2.2 CACHE FIX</div>
 
     <script type="module">
-        // Version check - CRITICAL for debugging cache issues
-        console.log('🎮 RICOCHET HUNTER v2.1 - Safari Fix Loaded');
-        console.log('🕐 Page load time:', new Date().toISOString());
-        console.log('📱 If you see "Ready to start" instead of "TOUCH ANYWHERE", your browser cached the OLD version!');
-        console.log('🔄 Force refresh: Safari → Long press reload button → "Request Desktop Website" → Reload again');
+        // CACHE BUSTER - Version 2.2 with timestamp
+        const BUILD_VERSION = 'v2.2';
+        const LOAD_TIME = new Date().toISOString();
+        console.log('🔥🔥🔥 CACHE BUSTER: ' + BUILD_VERSION + ' loaded at ' + LOAD_TIME);
+        console.log('🔥 If you see v2.1 or older = CACHE PROBLEM!');
+        console.log('🔥 Bottom right corner should say: "v2.2 CACHE FIX"');
+
+        // Show version in title too
+        document.title = 'Ricochet Hunter ' + BUILD_VERSION;
 
         // Loading progress tracking
         let progress = 0;
@@ -371,18 +375,26 @@
 
                 // Show "Touch to start" for mobile, "Click to start" for desktop
                 const startText = isMobile ? '👆 TOUCH ANYWHERE TO START' : '🖱️ CLICK TO START';
-                console.log('✅ Game ready! isMobile:', isMobile);
-                console.log('✅ Showing text:', startText);
-                console.log('✅ This text should appear on screen NOW');
+                console.log('🔥🔥🔥 ===== GAME READY CHECK =====');
+                console.log('🔥 isMobile:', isMobile);
+                console.log('🔥 Text to display:', startText);
+                console.log('🔥 Expected on screen:', isMobile ? 'TOUCH ANYWHERE TO START' : 'CLICK TO START');
 
                 updateProgress(100, 'Ready!', startText);
 
-                // Verify the text was set
+                // Verify the text was set - with 3 checks
                 setTimeout(() => {
                     const actualText = loadingStatus.textContent;
-                    console.log('✅ Actual text on screen:', actualText);
-                    if (actualText !== startText) {
-                        console.error('❌ BUG: Text mismatch! Expected:', startText, 'Got:', actualText);
+                    console.log('🔥🔥🔥 ===== TEXT VERIFICATION =====');
+                    console.log('🔥 Expected:', startText);
+                    console.log('🔥 Actually displayed:', actualText);
+
+                    if (actualText === startText) {
+                        console.log('✅✅✅ SUCCESS! Correct version loaded!');
+                    } else {
+                        console.error('❌❌❌ CACHE PROBLEM! Wrong text displayed!');
+                        console.error('❌ You are seeing the OLD CACHED VERSION!');
+                        console.error('❌ Clear Safari cache: Settings → Safari → Clear History and Website Data');
                     }
                 }, 100);
 
@@ -436,9 +448,16 @@
         loadingScreen.addEventListener('touchend', handleStartInteraction, { passive: false });
 
         console.log('Event listeners attached to loading screen');
+        console.log('🔥 VERSION CHECK: If text below is "TOUCH ANYWHERE TO START" = NEW VERSION ✅');
+        console.log('🔥 VERSION CHECK: If text below is "Ready to start" or something else = OLD CACHED VERSION ❌');
     </script>
 
-    <!-- Pygbag will inject its loader here -->
-    <script type="module" src="main.py"></script>
+    <!-- Pygbag will inject its loader here - with cache buster timestamp -->
+    <script type="module">
+        // Force reload main.py with timestamp to bust cache
+        const timestamp = Date.now();
+        console.log('🔥 Loading main.py with cache buster:', timestamp);
+        import(`./main.py?v=${timestamp}`);
+    </script>
 </body>
 </html>
