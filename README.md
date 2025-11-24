@@ -117,6 +117,9 @@ python -m http.server 8000
 ✅ Full game functionality
 ✅ Touch controls support (mobile-friendly)
 ✅ Automatic updates when you push changes
+✅ Beautiful loading screen with progress indicators
+
+**Note:** Initial loading may take 30-90 seconds on mobile devices due to WebAssembly compilation. The loading screen shows progress and helpful tips while you wait!
 
 ## Android Version - Aishooty (Bird Shooting Game)
 

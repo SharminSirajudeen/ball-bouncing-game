@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Bird Hunter - Strategic Shooting Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .game-title {
+            font-size: 3em;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 1em;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            padding: 0 20px;
+        }
+
+        .loading-container {
+            width: 80%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 1.2em;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .loading-status {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 1.5em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+        }
+
+        .progress-percent {
+            color: white;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tips {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9em;
+            text-align: center;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+
+        #game-canvas {
+            display: none;
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+
+        #game-canvas.ready {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .game-title {
+                font-size: 2em;
+            }
+            .loading-container {
+                width: 90%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="game-title">🎯 Bird Hunter</div>
+        <div class="loading-container">
+            <div class="loading-text" id="loading-text">Initializing Game...</div>
+            <div class="loading-status" id="loading-status">Please wait, this may take up to 2 minutes on mobile devices</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-percent" id="progress-percent">0%</div>
+            <div class="spinner"></div>
+            <div class="tips" id="loading-tips">
+                💡 <strong>Tip:</strong> Drag any ball to aim and shoot birds!
+            </div>
+        </div>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
+    <script type="module">
+        // Loading progress tracking
+        let progress = 0;
+        const progressFill = document.getElementById('progress-fill');
+        const progressPercent = document.getElementById('progress-percent');
+        const loadingText = document.getElementById('loading-text');
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingScreen = document.getElementById('loading-screen');
+        const gameCanvas = document.getElementById('game-canvas');
+
+        const tips = [
+            "💡 <strong>Tip:</strong> Drag any ball to aim and shoot birds!",
+            "🎯 <strong>Tip:</strong> Golden birds give bonus points and ammo!",
+            "🔥 <strong>Tip:</strong> Chain hits for combo multipliers!",
+            "⚡ <strong>Tip:</strong> Blue birds are rare but worth 10 points!",
+            "🎨 <strong>Tip:</strong> Press 'B' to switch bird rendering modes",
+            "🌟 <strong>Tip:</strong> Perfect center shots give 2x points!",
+            "⏸️ <strong>Tip:</strong> Press SPACE to pause, R to reset"
+        ];
+
+        let tipIndex = 0;
+        const tipsElement = document.getElementById('loading-tips');
+
+        // Rotate tips every 4 seconds
+        setInterval(() => {
+            tipIndex = (tipIndex + 1) % tips.length;
+            tipsElement.innerHTML = tips[tipIndex];
+        }, 4000);
+
+        function updateProgress(value, text, status = '') {
+            progress = Math.min(value, 100);
+            progressFill.style.width = progress + '%';
+            progressPercent.textContent = Math.floor(progress) + '%';
+            if (text) loadingText.textContent = text;
+            if (status) loadingStatus.textContent = status;
+        }
+
+        // Simulate loading stages for better user feedback
+        updateProgress(5, 'Loading Python Runtime...', 'Downloading WebAssembly module...');
+
+        // Track actual loading
+        let wasmLoaded = false;
+        let pythonLoaded = false;
+        let assetsLoaded = false;
+
+        // Listen for pygbag loading events
+        window.addEventListener('pygbag_loading', (e) => {
+            console.log('Pygbag loading event:', e.detail);
+
+            if (e.detail && e.detail.progress !== undefined) {
+                const stage = e.detail.stage || '';
+                const currentProgress = e.detail.progress || 0;
+
+                if (stage.includes('wasm') || stage.includes('runtime')) {
+                    updateProgress(10 + currentProgress * 0.3, 'Loading Python Runtime...', stage);
+                } else if (stage.includes('asset') || stage.includes('import')) {
+                    updateProgress(40 + currentProgress * 0.4, 'Loading Game Assets...', stage);
+                } else if (stage.includes('init')) {
+                    updateProgress(80 + currentProgress * 0.15, 'Initializing Game...', 'Almost ready!');
+                }
+            }
+        });
+
+        // Fallback: Progressive loading animation
+        let loadingInterval = setInterval(() => {
+            if (progress < 20) {
+                updateProgress(progress + 1, 'Loading Python Runtime...', 'This is the slowest part on mobile...');
+            } else if (progress < 40) {
+                updateProgress(progress + 0.5, 'Loading Python Runtime...', 'Almost there...');
+            } else if (progress < 70) {
+                updateProgress(progress + 0.8, 'Loading Game Assets...', 'Loading sprites and sounds...');
+            } else if (progress < 95) {
+                updateProgress(progress + 0.3, 'Initializing Game...', 'Getting everything ready...');
+            }
+        }, 200);
+
+        // Watch for game ready state
+        function checkGameReady() {
+            // When pygbag signals ready
+            if (window.pygbag_ready || (window.pygame && window.pygame.display)) {
+                clearInterval(loadingInterval);
+                updateProgress(100, 'Ready to Play!', 'Click anywhere to start');
+
+                setTimeout(() => {
+                    loadingScreen.classList.add('hidden');
+                    gameCanvas.classList.add('ready');
+
+                    // Remove loading screen after transition
+                    setTimeout(() => {
+                        loadingScreen.remove();
+                    }, 500);
+                }, 1000);
+            } else {
+                setTimeout(checkGameReady, 100);
+            }
+        }
+
+        // Start checking for game ready
+        setTimeout(checkGameReady, 1000);
+
+        // Handle click to start
+        loadingScreen.addEventListener('click', () => {
+            if (progress >= 95) {
+                loadingScreen.classList.add('hidden');
+                gameCanvas.classList.add('ready');
+                setTimeout(() => {
+                    loadingScreen.remove();
+                }, 500);
+            }
+        });
+    </script>
+
+    <!-- Pygbag will inject its loader here -->
+    <script type="module" src="main.py"></script>
+</body>
+</html>
