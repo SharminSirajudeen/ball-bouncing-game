@@ -23,8 +23,6 @@ echo "🔨 Building with Pygbag..."
 python -m pygbag \
     --build \
     --app_name "Bird Hunter" \
-    --icon assets/bird_sprite.png \
-    --template noctua \
     .
 
 echo ""
