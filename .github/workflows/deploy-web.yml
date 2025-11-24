@@ -41,7 +41,7 @@ jobs:
           cd python
           python -m pygbag \
             --build \
-            --app_name "Bird Hunter" \
+            --app_name "Ricochet Hunter" \
             .
 
       - name: Setup Pages

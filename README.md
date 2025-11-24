@@ -55,7 +55,7 @@ python run_bird_shooter.py
 **Web Version (Play in Browser):**
 
 The game can be played directly in your web browser! Visit the deployed version at:
-🎮 **[Play Bird Hunter Online](https://[YOUR-USERNAME].github.io/ball-bouncing-game/)**
+🎮 **[Play Ricochet Hunter Online](https://SharminSirajudeen.github.io/ball-bouncing-game/)**
 
 ### Game Controls
 - **Drag any ball** - Aim and shoot
@@ -93,7 +93,7 @@ pip install pygbag>=0.8.7
 ./build-web.sh
 
 # Or manually:
-python -m pygbag --build --app_name "Bird Hunter" .
+python -m pygbag --build --app_name "Ricochet Hunter" .
 ```
 
 Test locally:

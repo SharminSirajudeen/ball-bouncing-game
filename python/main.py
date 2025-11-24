@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Bird Hunter - Web Version (Pygbag Compatible)
+Ricochet Hunter - Web Version (Pygbag Compatible)
 
-This is the web-deployable version of the Bird Hunter game,
+This is the web-deployable version of the Ricochet Hunter game,
 optimized for running in browsers via Pygbag/WebAssembly.
 
 Author: AegisX
@@ -31,7 +31,7 @@ class WebGameSimulation(BouncingBallSimulation):
 
     async def run_async(self) -> None:
         """Async main simulation loop for web deployment."""
-        print("🎯 STRATEGIC BIRD HUNTER - Make Every Shot Count! 🎯")
+        print("🎯 RICOCHET HUNTER - Make Every Shot Count! 🎯")
         print("=" * 50)
         print("📢 GAME MECHANICS:")
         print("   • Limited Ammo: Start with 3 shots - earn more by hitting birds")
@@ -103,7 +103,7 @@ async def main():
         simulation = WebGameSimulation()
 
         print("✅ Game engine ready!")
-        print("🎯 Starting Bird Hunter...")
+        print("🎯 Starting Ricochet Hunter...")
 
         await simulation.run_async()
     except ImportError as e:

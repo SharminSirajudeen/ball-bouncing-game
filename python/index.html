@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Bird Hunter - Strategic Shooting Game</title>
+    <title>Ricochet Hunter - Strategic Shooting Game</title>
     <style>
         * {
             margin: 0;
@@ -153,7 +153,7 @@
 </head>
 <body>
     <div id="loading-screen">
-        <div class="game-title">🎯 Bird Hunter</div>
+        <div class="game-title">🎯 Ricochet Hunter</div>
         <div class="loading-container">
             <div class="loading-text" id="loading-text">Initializing Game...</div>
             <div class="loading-status" id="loading-status">Please wait, this may take up to 2 minutes on mobile devices</div>
@@ -179,6 +179,10 @@
         const loadingStatus = document.getElementById('loading-status');
         const loadingScreen = document.getElementById('loading-screen');
         const gameCanvas = document.getElementById('game-canvas');
+
+        // Detect if mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+                      || (window.innerWidth <= 768);
 
         const tips = [
             "💡 <strong>Tip:</strong> Drag any ball to aim and shoot birds!",
@@ -247,21 +251,37 @@
         }, 200);
 
         // Watch for game ready state
+        let gameReady = false;
+        let startGameCalled = false;
+
+        function startGame() {
+            if (startGameCalled) return;
+            startGameCalled = true;
+
+            loadingScreen.classList.add('hidden');
+            gameCanvas.classList.add('ready');
+
+            // Remove loading screen after transition
+            setTimeout(() => {
+                loadingScreen.remove();
+            }, 500);
+        }
+
         function checkGameReady() {
             // When pygbag signals ready
             if (window.pygbag_ready || (window.pygame && window.pygame.display)) {
                 clearInterval(loadingInterval);
-                updateProgress(100, 'Ready to Play!', 'Click anywhere to start');
+                gameReady = true;
 
+                const startText = isMobile ? 'Touch to start' : 'Click to start';
+                updateProgress(100, 'Ready!', startText);
+
+                // Auto-start after a brief moment (500ms) - user doesn't need to click
                 setTimeout(() => {
-                    loadingScreen.classList.add('hidden');
-                    gameCanvas.classList.add('ready');
-
-                    // Remove loading screen after transition
-                    setTimeout(() => {
-                        loadingScreen.remove();
-                    }, 500);
-                }, 1000);
+                    if (!startGameCalled) {
+                        startGame();
+                    }
+                }, 500);
             } else {
                 setTimeout(checkGameReady, 100);
             }
@@ -270,14 +290,10 @@
         // Start checking for game ready
         setTimeout(checkGameReady, 1000);
 
-        // Handle click to start
+        // Also allow manual start if user clicks before auto-start
         loadingScreen.addEventListener('click', () => {
-            if (progress >= 95) {
-                loadingScreen.classList.add('hidden');
-                gameCanvas.classList.add('ready');
-                setTimeout(() => {
-                    loadingScreen.remove();
-                }, 500);
+            if (gameReady) {
+                startGame();
             }
         });
     </script>
