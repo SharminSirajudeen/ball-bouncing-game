@@ -37,11 +37,21 @@
             align-items: center;
             z-index: 9999;
             transition: opacity 0.5s ease-out;
+            cursor: pointer;
         }
 
         #loading-screen.hidden {
             opacity: 0;
             pointer-events: none;
+        }
+
+        #loading-screen.ready {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
         }
 
         .game-title {
@@ -78,6 +88,19 @@
             text-align: center;
             margin-bottom: 20px;
             min-height: 1.5em;
+            transition: all 0.3s ease;
+        }
+
+        .loading-status.ready-to-start {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .progress-bar {
@@ -283,14 +306,17 @@
             if (pygbagReady || canvasReady || checkCount > 100) {
                 clearInterval(loadingInterval);
                 gameReady = true;
-                updateProgress(99, 'Almost Ready...', 'Initializing...');
 
-                // Auto-start after brief delay
-                setTimeout(() => {
-                    if (!startGameCalled) {
-                        startGame();
-                    }
-                }, 800);
+                // Show "Touch to start" for mobile, "Click to start" for desktop
+                const startText = isMobile ? '👆 Touch to start' : '🖱️ Click to start';
+                updateProgress(100, 'Ready!', startText);
+
+                // Add ready classes for animations
+                loadingScreen.classList.add('ready');
+                loadingStatus.classList.add('ready-to-start');
+
+                // DO NOT AUTO-START - wait for user interaction
+                // User must click/touch to start the game
             } else {
                 // Show progress based on time elapsed
                 const estimatedProgress = Math.min(95, 20 + (checkCount * 0.5));
@@ -308,12 +334,19 @@
         // Start checking after a brief delay
         setTimeout(checkGameReady, 1000);
 
-        // Also allow manual start if user clicks
-        loadingScreen.addEventListener('click', () => {
+        // Handle both click (desktop) and touch (mobile) to start game
+        function handleStartInteraction() {
             if (gameReady) {
+                updateProgress(100, 'Starting...', 'Please wait...');
                 startGame();
+            } else {
+                // If not ready yet, show loading status
+                updateProgress(progress, 'Still Loading...', 'Please wait a moment...');
             }
-        });
+        }
+
+        loadingScreen.addEventListener('click', handleStartInteraction);
+        loadingScreen.addEventListener('touchstart', handleStartInteraction);
     </script>
 
     <!-- Pygbag will inject its loader here -->
