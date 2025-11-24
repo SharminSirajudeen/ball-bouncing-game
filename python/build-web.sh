@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🎮 Building Bird Hunter for Web Deployment..."
+echo "🎮 Building Ricochet Hunter for Web Deployment..."
 echo "================================================"
 
 # Check if pygbag is installed
@@ -22,7 +22,7 @@ fi
 echo "🔨 Building with Pygbag..."
 python -m pygbag \
     --build \
-    --app_name "Bird Hunter" \
+    --app_name "Ricochet Hunter" \
     .
 
 echo ""

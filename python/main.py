@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Bird Hunter - Web Version (Pygbag Compatible)
+Ricochet Hunter - Web Version (Pygbag Compatible)
 
-This is the web-deployable version of the Bird Hunter game,
+This is the web-deployable version of the Ricochet Hunter game,
 optimized for running in browsers via Pygbag/WebAssembly.
 
 Author: AegisX
@@ -12,11 +12,18 @@ import asyncio
 import sys
 import os
 
+print("⏳ Loading game modules...")
+
 # Ensure the game module can be imported
 sys.path.insert(0, os.path.dirname(__file__))
 
+print("📦 Importing Pygame...")
 import pygame
+
+print("📦 Importing game engine...")
 from bouncing_ball import BouncingBallSimulation, DisplayConstants
+
+print("✅ All modules loaded!")
 
 
 class WebGameSimulation(BouncingBallSimulation):
@@ -24,7 +31,7 @@ class WebGameSimulation(BouncingBallSimulation):
 
     async def run_async(self) -> None:
         """Async main simulation loop for web deployment."""
-        print("🎯 STRATEGIC BIRD HUNTER - Make Every Shot Count! 🎯")
+        print("🎯 RICOCHET HUNTER - Make Every Shot Count! 🎯")
         print("=" * 50)
         print("📢 GAME MECHANICS:")
         print("   • Limited Ammo: Start with 3 shots - earn more by hitting birds")
@@ -87,14 +94,24 @@ class WebGameSimulation(BouncingBallSimulation):
 async def main():
     """Async main function for web deployment."""
     try:
+        print("🎮 Initializing game engine...")
+        print("⏳ This may take 30-60 seconds on mobile devices...")
+
+        # Add a small delay to let the browser render loading messages
+        await asyncio.sleep(0.1)
+
         simulation = WebGameSimulation()
+
+        print("✅ Game engine ready!")
+        print("🎯 Starting Ricochet Hunter...")
+
         await simulation.run_async()
     except ImportError as e:
-        print(f"Import Error: {e}")
+        print(f"❌ Import Error: {e}")
         print("Make sure pygame is installed: pip install pygame")
         sys.exit(1)
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        print(f"❌ Unexpected error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
