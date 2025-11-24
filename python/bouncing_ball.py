@@ -84,6 +84,10 @@ class BallConstants:
     SLINGSHOT_MAX_DRAG_DISTANCE: float = 200.0  # Increased drag distance for more power
     SQUISH_FACTOR: float = 0.8
 
+    # Resource scarcity settings (addiction mechanic)
+    MAX_AMMO: int = 8  # Cap on maximum ammo to create scarcity
+    MAX_BALLS_ON_SCREEN: int = 3  # Limit simultaneous balls for strategic timing
+
 
 class BirdConstants:
     """Bird animation constants."""
@@ -99,24 +103,24 @@ class BirdConstants:
     # Regular brown birds
     REGULAR_SPEED: float = 100.0  # pixels per second
     REGULAR_POINTS: int = 1
-    REGULAR_BALLS_REWARD: int = 1
+    REGULAR_BALLS_REWARD: int = 0  # No ammo - creates scarcity!
     
     # Golden birds (yellow)
     GOLDEN_SPEED: float = 150.0  # faster
     GOLDEN_POINTS: int = 5
-    GOLDEN_BALLS_REWARD: int = 2
+    GOLDEN_BALLS_REWARD: int = 1  # Valuable ammo reward
     
     # Red angry birds
     ANGRY_SPEED: float = 120.0
     ANGRY_POINTS: int = 3
-    ANGRY_BALLS_REWARD: int = 1
+    ANGRY_BALLS_REWARD: int = 0  # No ammo - just points
     ANGRY_ZIGZAG_AMPLITUDE: float = 30.0  # zigzag pattern
     ANGRY_ZIGZAG_FREQUENCY: float = 4.0
     
     # Blue rare birds
     RARE_SPEED: float = 200.0  # very fast
     RARE_POINTS: int = 10
-    RARE_BALLS_REWARD: int = 3
+    RARE_BALLS_REWARD: int = 2  # Jackpot ammo reward!
     RARE_DODGE_DISTANCE: float = 80.0  # dodge when ball gets close
     
     # Spawn rates (probabilities out of 100)
@@ -202,7 +206,8 @@ class Colors:
     PURPLE: Tuple[int, int, int] = (255, 85, 255)
     CYAN: Tuple[int, int, int] = (85, 255, 255)
     YELLOW: Tuple[int, int, int] = (255, 255, 85)
-    
+    GOLD: Tuple[int, int, int] = (255, 215, 0)  # For rewards and bonuses
+
     # Mario background colors
     SKY_BLUE_LIGHT: Tuple[int, int, int] = (135, 206, 250)
     SKY_BLUE_DARK: Tuple[int, int, int] = (70, 130, 180)
@@ -343,6 +348,21 @@ class Bird:
         elif self.bird_type == BirdType.RARE:
             return BirdConstants.RARE_BALLS_REWARD
         return BirdConstants.REGULAR_BALLS_REWARD
+
+
+@dataclass
+class Dropping:
+    """Bird dropping obstacle that can destroy balls (Wave 2+ difficulty)."""
+    x: float
+    y: float
+    vy: float = 150.0  # Falling speed
+    radius: int = 8  # Size of dropping
+    from_bird_type: BirdType = BirdType.REGULAR  # Which bird dropped it
+
+    @property
+    def is_active(self) -> bool:
+        """Check if dropping is still on screen."""
+        return self.y < 700  # Remove when off bottom of screen
 
 
 @dataclass
@@ -673,7 +693,11 @@ class BouncingBallSimulation:
         self.birds: List[Bird] = []
         self.last_bird_spawn: float = 0.0
         self.next_bird_spawn_delay: float = 2.0
-        
+
+        # Bird droppings (Wave 2+ difficulty)
+        self.droppings: List[Dropping] = []
+        self.last_dropping_time: float = 0.0
+
         # Cloud obstacles
         self.clouds: List[Cloud] = []
         self._initialize_clouds()  # Now draws fluffy clouds, not gray rectangles
@@ -717,6 +741,11 @@ class BouncingBallSimulation:
             Ball if ammo available, None otherwise
         """
         if self.game_state.ammo_count <= 0:
+            return None
+
+        # Enforce max balls on screen (addiction mechanic: strategic timing)
+        if self.game_state.balls_in_flight >= BallConstants.MAX_BALLS_ON_SCREEN:
+            self._add_floating_text(self.width // 2, 200, "Wait for ball to land!", Colors.RED, 28)
             return None
 
         # Create ball at specified position or default
@@ -821,7 +850,10 @@ class BouncingBallSimulation:
         self._spawn_birds_if_needed()
         self._update_birds(dt)
         self._check_bird_dodging()
-        
+
+        # Update droppings (Wave 2+ difficulty)
+        self._update_droppings(dt)
+
         # Check for collisions
         self._check_bird_strikes()
         self._check_cloud_collisions()  # Re-enabled with fluffy clouds
@@ -999,15 +1031,21 @@ class BouncingBallSimulation:
                     self._handle_miss()
     
     def _handle_miss(self) -> None:
-        """Handle when player misses a shot."""
+        """Handle when player misses a shot (addiction mechanic: punishment)."""
         self.game_state.miss_count += 1
-        
-        # Miss streak penalty: lose a ball after 5 consecutive misses
-        if self.game_state.miss_count >= 5:
+
+        # Warning feedback after 2 misses
+        if self.game_state.miss_count == 2:
+            self._add_floating_text(self.width // 2, self.height // 2 - 50,
+                                  "⚠️ ONE MORE MISS = -1 AMMO!", Colors.ORANGE, 36)
+
+        # Miss streak penalty: lose ammo after 3 consecutive misses (was 5)
+        # This creates tension and makes each shot matter more
+        if self.game_state.miss_count >= 3:
             self.game_state.ammo_count = max(0, self.game_state.ammo_count - 1)
             self.game_state.miss_count = 0
-            self._add_floating_text(self.width // 2, self.height // 2, 
-                                  "MISS STREAK! -1 AMMO", Colors.WARNING_RED, 48)
+            self._add_floating_text(self.width // 2, self.height // 2,
+                                  "MISS STREAK! -1 AMMO 💔", Colors.WARNING_RED, 48)
             self._trigger_screen_shake(10)
     
     def _update_game_state(self, dt: float) -> None:
@@ -1353,10 +1391,31 @@ class BouncingBallSimulation:
                     
                     # Award points
                     self.game_state.score += base_points
-                    
-                    # Award ammo
-                    self.game_state.ammo_count += bird.balls_reward
-                    
+
+                    # Award ammo with strategic rewards
+                    ammo_reward = bird.balls_reward
+
+                    # Bonus ammo for perfect shots (center hits)
+                    distance_from_center = math.sqrt((ball.x - bird.x)**2 + (ball.y - bird.y)**2)
+                    if distance_from_center < BirdConstants.COLLISION_RADIUS * 0.3:  # Within 30% of center
+                        ammo_reward += 1
+                        self._add_floating_text(bird.x, bird.y - 50, "+1 AMMO BONUS!", Colors.GOLD, 24)
+
+                    # Bonus ammo for combo streaks (every 5 hits)
+                    if self.game_state.combo_count > 0 and self.game_state.combo_count % 5 == 0:
+                        ammo_reward += 1
+                        self._add_floating_text(bird.x, bird.y + 50, "STREAK BONUS +1!", Colors.GOLD, 24)
+
+                    # Add ammo with cap enforcement (addiction mechanic: scarcity)
+                    if ammo_reward > 0:
+                        old_ammo = self.game_state.ammo_count
+                        self.game_state.ammo_count = min(self.game_state.ammo_count + ammo_reward, BallConstants.MAX_AMMO)
+                        actual_gained = self.game_state.ammo_count - old_ammo
+                        if actual_gained > 0:
+                            self._add_floating_text(bird.x, bird.y - 70, f"+{actual_gained} AMMO", Colors.BLUE, 28)
+                        if self.game_state.ammo_count >= BallConstants.MAX_AMMO:
+                            self._add_floating_text(self.width // 2, 150, "MAX AMMO!", Colors.RED, 32)
+
                     # Update combo system
                     self.game_state.combo_count += 1
                     self.game_state.max_combo = max(self.game_state.max_combo, self.game_state.combo_count)
@@ -1485,7 +1544,10 @@ class BouncingBallSimulation:
         
         # Draw birds with different colors based on type
         self._draw_birds()
-        
+
+        # Draw bird droppings (Wave 2+ difficulty)
+        self._draw_droppings()
+
         # Draw wind particles if strong wind
         if self.game_state.wind_strength > 50:
             self._draw_wind_particles()
@@ -2472,12 +2534,69 @@ class BouncingBallSimulation:
         
         # Remove birds that have flown off screen
         self.birds = [bird for bird in self.birds if bird.is_active]
-    
+
+    def _update_droppings(self, dt: float) -> None:
+        """Update bird droppings (Wave 2+ difficulty mechanic)."""
+        current_time = time.time()
+
+        # Only spawn droppings in Wave 2+
+        if self.game_state.current_wave >= 2:
+            # Spawn droppings from random birds occasionally
+            if current_time - self.last_dropping_time > 2.0:  # Every 2 seconds
+                if self.birds and random.random() < 0.4:  # 40% chance
+                    bird = random.choice(self.birds)
+                    dropping = Dropping(
+                        x=bird.x,
+                        y=bird.y + BirdConstants.BIRD_HEIGHT // 2,
+                        from_bird_type=bird.bird_type
+                    )
+                    self.droppings.append(dropping)
+                    self.last_dropping_time = current_time
+
+        # Update dropping positions
+        for dropping in self.droppings:
+            dropping.y += dropping.vy * dt
+
+        # Check collisions with balls (HIGH RISK!)
+        for dropping in list(self.droppings):
+            for ball in list(self.balls):
+                distance = math.sqrt((ball.x - dropping.x)**2 + (ball.y - dropping.y)**2)
+                if distance < (ball.radius + dropping.radius):
+                    # Dropping hit ball - destroy the ball!
+                    if ball in self.balls:
+                        self.balls.remove(ball)
+                        self.game_state.balls_in_flight -= 1
+                        self.game_state.ammo_count = max(0, self.game_state.ammo_count - 1)
+                        self._add_floating_text(ball.x, ball.y, "💩 BALL DESTROYED -1 AMMO!", Colors.WARNING_RED, 32)
+                        self._trigger_screen_shake(8)
+                    if dropping in self.droppings:
+                        self.droppings.remove(dropping)
+                    break
+
+        # Remove off-screen droppings
+        self.droppings = [d for d in self.droppings if d.is_active]
+
     def _draw_birds(self) -> None:
         """Draw all active birds."""
         for bird in self.birds:
             self._draw_bird(bird)
-    
+
+    def _draw_droppings(self) -> None:
+        """Draw bird droppings (Wave 2+ difficulty visual)."""
+        for dropping in self.droppings:
+            # Draw as brown/white splat with 💩 appearance
+            color = (101, 67, 33) if dropping.from_bird_type != BirdType.GOLDEN else (255, 215, 0)
+            # Main dropping
+            pygame.draw.circle(self.screen, color, (int(dropping.x), int(dropping.y)), dropping.radius)
+            # Add white highlight for shiny appearance
+            pygame.draw.circle(self.screen, (255, 255, 255),
+                             (int(dropping.x - 2), int(dropping.y - 2)), dropping.radius // 2)
+            # Add danger glow for Wave 2+
+            if self.game_state.current_wave >= 2:
+                glow_color = (255, 0, 0, 50)  # Red glow
+                pygame.draw.circle(self.screen, Colors.RED,
+                                 (int(dropping.x), int(dropping.y)), dropping.radius + 3, 1)
+
     def _get_rainbow_color(self, offset: float = 0) -> Tuple[int, int, int]:
         """Generate rainbow colors based on time.
         
@@ -2678,16 +2797,17 @@ class BouncingBallSimulation:
     
     def run(self) -> None:
         """Main simulation loop."""
-        print("🎯 STRATEGIC BIRD HUNTER - Make Every Shot Count! 🎯")
+        print("🎯 RICOCHET HUNTER - Make Every Shot Count! 🎯")
         print("=" * 50)
-        print("📢 GAME MECHANICS:")
-        print("   • Limited Ammo: Start with 3 shots - earn more by hitting birds")
-        print("   • Bird Types: Brown(1pt,+1ammo), Gold(5pt,+2ammo), Red(3pt,zigzag), Blue(10pt,+3ammo,dodges)")
+        print("📢 GAME MECHANICS (BALANCED FOR ADDICTIVE GAMEPLAY!):")
+        print("   • Ammo System: Start with 3 shots, MAX 8 ammo (resource scarcity!)")
+        print("   • Max 3 balls on screen - timing matters!")
+        print("   • Bird Rewards: Brown(0 ammo), Gold(+1), Red(0), Blue(+2) - hunt gold!")
+        print("   • Skill Bonuses: Perfect center shot (+1 ammo), 5-hit streak (+1)")
         print("   • Combos: Chain hits for multiplier bonuses")
-        print("   • Power-ups: Collect for special abilities")
-        print("   • Obstacles: Moving clouds block shots")
-        print("   • Perfect Shots: Hit bird center for 2x points")
-        print("   • Miss Penalty: 5 misses in a row = lose 1 ammo")
+        print("   • Miss Penalty: 3 misses in a row = LOSE 1 ammo! ⚠️")
+        print("   • Perfect Shots: Hit bird center for 2x points + bonus ammo")
+        print("   • ⚠️ WAVE 2+: Bird droppings fall and DESTROY balls (-1 ammo)! 💩")
         print("📢 CONTROLS:")
         print("   • Click & Drag: Aim and shoot")
         print("   • R: Reset game  • SPACE: Pause  • ESC/Q: Quit")
